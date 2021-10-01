@@ -4,16 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 )
 
-/* type room struct {
-	name    string "Go_Chat Box"
-	members map[net.Addr]*client
-} */
-
 type server struct {
-	rooms    string
+	//rooms    string
 	commands chan command
 }
 
@@ -44,7 +38,7 @@ func (s *server) newClient(conn net.Conn) {
 
 	c := &client{
 		conn:     conn,
-		name:     "anonymous",
+		name:     "Unknown",
 		commands: s.commands,
 	}
 
@@ -80,16 +74,13 @@ func (s *server) msg(c *client, args []string) {
 		return
 	}
 
-	msg := strings.Join(args[1:], " ")
-	c.broadcast(c, c.name+": "+msg)
+	/* m := strings.Join(args[1:], " ")
+	c.room.broadcast(c, c.name+": "+m) */
 
 }
 
 func (s *server) quit(c *client) {
 	log.Printf("client has left the chat: %s", c.conn.RemoteAddr().String())
-
-	//s.quitCurrentRoom(c)
-
 	c.msg("sad to see you go :(")
 	c.conn.Close()
 }
