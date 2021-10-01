@@ -7,14 +7,19 @@ import (
 	"strings"
 )
 
+/* type room struct {
+	name    string "Go_Chat Box"
+	members map[net.Addr]*client
+} */
+
 type server struct {
-	//rooms    map[string]*room
+	rooms    string
 	commands chan command
 }
 
 func newServer() *server {
 	return &server{
-		//rooms:    make(map[string]*room),
+		//rooms:    string,
 		commands: make(chan command),
 	}
 }
@@ -23,7 +28,7 @@ func (s *server) run() {
 	for cmd := range s.commands {
 		switch cmd.id {
 		case CMD_NAME:
-			s.nick(cmd.client, cmd.args)
+			s.name(cmd.client, cmd.args)
 		case CMD_JOIN:
 			s.join(cmd.client, cmd.args)
 		case CMD_MSG:
@@ -46,9 +51,9 @@ func (s *server) newClient(conn net.Conn) {
 	c.readInput()
 }
 
-func (s *server) nick(c *client, args []string) {
+func (s *server) name(c *client, args []string) {
 	if len(args) < 2 {
-		c.msg("name is required. usage: /nick NAME")
+		c.msg("name is required. usage: /name NAME")
 		return
 	}
 
@@ -58,8 +63,13 @@ func (s *server) nick(c *client, args []string) {
 
 func (s *server) join(c *client, args []string) {
 
-	//r.members[c.conn.RemoteAddr()] = c
-	//r.broadcast(c, fmt.Sprintf("%s joined the room", c.name))
+	roomName := args[1]
+	r := &room{
+		name:    "Go_Chat Box",
+		members: make(map[net.Addr]*client),
+	}
+
+	r.broadcast(c, fmt.Sprintf("%s joined the room", c.name))
 
 	c.msg(fmt.Sprintf("welcome to %s", roomName))
 }
@@ -71,7 +81,8 @@ func (s *server) msg(c *client, args []string) {
 	}
 
 	msg := strings.Join(args[1:], " ")
-	c.room.broadcast(c, c.name+": "+msg)
+	c.broadcast(c, c.name+": "+msg)
+
 }
 
 func (s *server) quit(c *client) {
@@ -79,6 +90,6 @@ func (s *server) quit(c *client) {
 
 	//s.quitCurrentRoom(c)
 
-	c.msg("sad to see you go =(")
+	c.msg("sad to see you go :(")
 	c.conn.Close()
 }
