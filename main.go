@@ -3,10 +3,11 @@ package main
 import (
 	"log"
 	"net"
+	se "github.com/KeshikaGupta20/Go_chat/server"
 )
 
 func main() {
-	s := newServer()
+	s := se.newServer()
 	go s.run()
 
 	listener, err := net.Listen("tcp", ":8888")
