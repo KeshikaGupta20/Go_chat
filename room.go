@@ -5,7 +5,7 @@ import (
 )
 
 type room struct {
-	name    string "Go_Chat Box"
+	name    string
 	members map[net.Addr]*client
 }
 

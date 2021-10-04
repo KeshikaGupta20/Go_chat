@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"log"
 	"net"
-	
+	"strings"
 )
 
 type server struct {
-	//rooms    string
+	rooms    map[string]*room
 	commands chan command
 }
 
 func newServer() *server {
 	return &server{
-		//rooms:    string,
+		rooms:    make(map[string]*room),
 		commands: make(chan command),
 	}
 }
@@ -26,6 +26,8 @@ func (s *server) run() {
 			s.name(cmd.client, cmd.args)
 		case CMD_JOIN:
 			s.join(cmd.client, cmd.args)
+		case CMD_ROOMS:
+			s.listRooms(cmd.client)
 		case CMD_MSG:
 			s.msg(cmd.client, cmd.args)
 		case CMD_QUIT:
@@ -57,16 +59,38 @@ func (s *server) name(c *client, args []string) {
 }
 
 func (s *server) join(c *client, args []string) {
+	if len(args) < 2 {
+		c.msg("room name is required. usage: /join ROOM_NAME")
+		return
+	}
 
 	roomName := args[1]
-	r := &room{
-		name:    "Go_Chat Box",
-		members: make(map[net.Addr]*client),
+
+	r, ok := s.rooms[roomName]
+	if !ok {
+		r = &room{
+			name:    roomName,
+			members: make(map[net.Addr]*client),
+		}
+		s.rooms[roomName] = r
 	}
+	r.members[c.conn.RemoteAddr()] = c
+
+	s.quitCurrentRoom(c)
+	c.room = r
 
 	r.broadcast(c, fmt.Sprintf("%s joined the room", c.name))
 
 	c.msg(fmt.Sprintf("welcome to %s", roomName))
+}
+
+func (s *server) listRooms(c *client) {
+	var rooms []string
+	for name := range s.rooms {
+		rooms = append(rooms, name)
+	}
+
+	c.msg(fmt.Sprintf("available rooms: %s", strings.Join(rooms, ", ")))
 }
 
 func (s *server) msg(c *client, args []string) {
@@ -75,13 +99,23 @@ func (s *server) msg(c *client, args []string) {
 		return
 	}
 
-	/* m := strings.Join(args[1:], " ")
-	c.room.broadcast(c, c.name+": "+m) */
+	m := strings.Join(args[1:], " ")
+	c.room.broadcast(c, c.name+": "+m)
 
 }
 
 func (s *server) quit(c *client) {
 	log.Printf("client has left the chat: %s", c.conn.RemoteAddr().String())
+
+	s.quitCurrentRoom(c)
+
 	c.msg("sad to see you go :(")
 	c.conn.Close()
+}
+
+func (s *server) quitCurrentRoom(c *client) {
+	if c.room != nil {
+		delete(s.rooms[c.room.name].members, c.conn.RemoteAddr())
+		c.room.broadcast(c, fmt.Sprintf("%s has left the room", c.name))
+	}
 }
